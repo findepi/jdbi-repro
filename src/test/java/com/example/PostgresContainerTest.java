@@ -11,7 +11,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
-import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -113,7 +113,7 @@ public class PostgresContainerTest
         System.out.println("Created test_data table with 100 rows");
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
-        CyclicBarrier barrier = new CyclicBarrier(2);
+        CountDownLatch latch = new CountDownLatch(2);
         AtomicInteger successCount = new AtomicInteger(0);
         AtomicInteger attemptCount1 = new AtomicInteger(0);
         AtomicInteger attemptCount2 = new AtomicInteger(0);
@@ -126,8 +126,9 @@ public class PostgresContainerTest
                     System.out.println("Transaction 1 (attempt " + attempt + "): Updating row ID=1");
                     handle.execute("UPDATE test_data SET value = value + 1 WHERE id = 1");
 
-                    System.out.println("Transaction 1 (attempt " + attempt + "): Waiting at barrier");
-                    barrier.await();
+                    latch.countDown();
+                    System.out.println("Transaction 1 (attempt " + attempt + "): Waiting at latch");
+                    latch.await();
 
                     Thread.sleep(100); // Give transaction 2 time to acquire its first lock
 
@@ -152,8 +153,9 @@ public class PostgresContainerTest
                     System.out.println("Transaction 2 (attempt " + attempt + "): Updating row ID=100");
                     handle.execute("UPDATE test_data SET value = value + 1 WHERE id = 100");
 
-                    System.out.println("Transaction 2 (attempt " + attempt + "): Waiting at barrier");
-                    barrier.await();
+                    latch.countDown();
+                    System.out.println("Transaction 2 (attempt " + attempt + "): Waiting at latch");
+                    latch.await();
 
                     Thread.sleep(100); // Give transaction 1 time to acquire its first lock
 
