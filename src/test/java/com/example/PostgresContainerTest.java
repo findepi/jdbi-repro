@@ -1,7 +1,6 @@
 package com.example;
 
 import org.jdbi.v3.core.Jdbi;
-import org.jdbi.v3.core.transaction.SerializableTransactionRunner;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -98,9 +97,9 @@ public class PostgresContainerTest
     @Test
     public void testDeadlockRetry() throws Exception
     {
-        // Configure JDBI with SerializableTransactionRunner to enable automatic retries on deadlock
+        // Configure JDBI with custom DeadlockRetryTransactionHandler to enable automatic retries on deadlock
         Jdbi jdbi = Jdbi.create(jdbcUrl, username, password);
-        jdbi.setTransactionHandler(new SerializableTransactionRunner());
+        jdbi.setTransactionHandler(new DeadlockRetryTransactionHandler());
 
         // Create a test table with 100 rows
         jdbi.useHandle(handle -> {
@@ -142,6 +141,7 @@ public class PostgresContainerTest
             } catch (Exception e) {
                 System.out.println("Transaction 1: Failed after " + attemptCount1.get() + " attempt(s) with " +
                                    e.getClass().getSimpleName() + ": " + e.getMessage());
+                e.printStackTrace();
             }
         };
 
@@ -169,6 +169,7 @@ public class PostgresContainerTest
             } catch (Exception e) {
                 System.out.println("Transaction 2: Failed after " + attemptCount2.get() + " attempt(s) with " +
                                    e.getClass().getSimpleName() + ": " + e.getMessage());
+                e.printStackTrace();
             }
         };
 
